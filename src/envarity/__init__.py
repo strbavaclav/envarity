@@ -1,2 +1,3 @@
-def main() -> None:
-    print("Hello from envarity!")
+from envarity.__main__ import main
+
+__all__ = ["main"]

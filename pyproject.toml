@@ -7,7 +7,10 @@ authors = [
     { name = "Štrba Václav", email = "vaclav.strba@o2.cz" }
 ]
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "pyaml>=26.7.0",
+    "pydantic>=2.14.1",
+]
 
 [project.scripts]
 envarity = "envarity:main"

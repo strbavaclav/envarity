@@ -1,0 +1,13 @@
+rules:
+  - key_pattern: "HOST*"
+    expect: differs
+  - key_pattern: "ENV_NAME"
+    expect: differs
+  - key_pattern: "AUTH_MS_URL"
+    expect: differs
+  - key_pattern: "NAMESPACE"
+    expect: differs
+  - key_pattern: "CONTAINER_*"
+    expect: differs
+  - key_pattern: "APP_BASE_HREF"
+    expect: differs
