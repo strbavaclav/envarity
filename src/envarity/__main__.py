@@ -1,8 +1,12 @@
 import argparse
 
-from envarity.config_loader import load_repos, validate_repo
+from envarity.classify import classify_diff
+from envarity.config_loader import load_repos, load_rules, validate_repo
+from envarity.git_reader import read_file_at_ref
+from envarity.yaml_diff import diff_keys, extract_placeholder_names
 
 REPOS_PATH = "config/repos.yaml"
+RULES_PATH = "config/rules.yaml"
 
 
 def cmd_repos_list() -> None:
@@ -26,6 +30,30 @@ def cmd_repos_validate() -> None:
         raise SystemExit(1)
 
 
+def cmd_check(repo_name: str, file_name: str, branch_from: str, branch_to: str) -> None:
+    repo = next((r for r in load_repos(REPOS_PATH) if r.name == repo_name), None)
+    if repo is None:
+        raise SystemExit(f"repo '{repo_name}' not found in {REPOS_PATH}")
+    rules = load_rules(RULES_PATH)
+
+    text_from = read_file_at_ref(repo.path, f"origin/{branch_from}", file_name)
+    text_to = read_file_at_ref(repo.path, f"origin/{branch_to}", file_name)
+
+    diff = diff_keys(
+        extract_placeholder_names(text_from),
+        extract_placeholder_names(text_to),
+    )
+    result = classify_diff(diff, rules)
+
+    print(f"Comparing {branch_from} -> {branch_to} in {file_name}\n")
+    print("Expected differences:")
+    for key in result["expected"]:
+        print(f"  - {key}")
+    print("\nSuspicious differences (FLAG):")
+    for key in result["flagged"]:
+        print(f"  - {key}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="envarity",
@@ -40,12 +68,24 @@ def main() -> None:
     repos_sub.add_parser("list", help="Vypíše registrované repozitáře.")
     repos_sub.add_parser("validate", help="Ověří, že branche v repu existují.")
 
+    check_parser = subparsers.add_parser(
+        "check",
+        help="Compares two branches of a repo and reports differences in placeholders.",
+    )
+
+    check_parser.add_argument("repo_name")
+    check_parser.add_argument("--file", required=True)
+    check_parser.add_argument("--from", dest="branch_from", required=True)
+    check_parser.add_argument("--to", dest="branch_to", required=True)
+
     args = parser.parse_args()
 
     if args.command == "repos" and args.repos_command == "list":
         cmd_repos_list()
     elif args.command == "repos" and args.repos_command == "validate":
         cmd_repos_validate()
+    elif args.command == "check":
+        cmd_check(args.repo_name, args.file, args.branch_from, args.branch_to)
     else:
         parser.print_help()
 
