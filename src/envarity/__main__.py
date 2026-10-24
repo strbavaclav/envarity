@@ -7,6 +7,7 @@ from envarity.config_loader import load_repos, load_rules, validate_repo
 from envarity.embeddings import embed_texts, find_similar
 from envarity.explain import explain_diff
 from envarity.git_history import (
+    build_key_histories,
     changes_to_documents,
     extract_ticket_id,
     log_all_changes,
@@ -114,12 +115,15 @@ def cmd_explain(
     text_to = read_file_at_ref(repo.path, f"origin/{branch_to}", file_name)
 
     diff = diff_keys(
-        extract_placeholder_names(text_from),
-        extract_placeholder_names(text_to),
+        extract_placeholder_names(text_from), extract_placeholder_names(text_to)
     )
     classified = classify_diff(diff, rules)
 
-    result = explain_diff(classified, use_fewshot=use_fewshot)
+    key_histories = build_key_histories(
+        repo.path, file_name, classified["flagged"], branches=[branch_from, branch_to]
+    )
+
+    result = explain_diff(classified, key_histories, use_fewshot=use_fewshot)
     print(json.dumps(result, indent=2))
 
 

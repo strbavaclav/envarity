@@ -135,3 +135,28 @@ def changes_to_documents(changes: list[dict]) -> list[str]:
 def extract_ticket_id(text: str) -> str | None:
     match = re.search(r"[A-Za-z]{2,}-\d+", text)
     return match.group(0) if match else None
+
+
+def summarize_key_history(
+    repo_path: str, file_path: str, key: str, branches: list[str]
+) -> str:
+    changes = log_changes_for_key(repo_path, file_path, key, branches=branches)
+    if not changes:
+        return "no prior change history found for these environments"
+
+    tickets = sorted({t for c in changes if (t := extract_ticket_id(c["message"]))})
+    ticket_part = (
+        f", tickets: {', '.join(tickets)}"
+        if tickets
+        else ", no ticket found in commit messages"
+    )
+    return f"changed {len(changes)} time(s) before{ticket_part}"
+
+
+def build_key_histories(
+    repo_path: str, file_path: str, flagged_keys: list[str], branches: list[str]
+) -> dict[str, str]:
+    return {
+        key: summarize_key_history(repo_path, file_path, key, branches)
+        for key in flagged_keys
+    }

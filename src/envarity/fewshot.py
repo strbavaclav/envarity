@@ -5,6 +5,7 @@ from openai.types.chat import ChatCompletionMessageParam
 
 from envarity.classify import classify_diff
 from envarity.config_loader import load_repos, load_rules
+from envarity.git_history import build_key_histories
 from envarity.git_reader import read_file_at_ref
 from envarity.yaml_diff import diff_keys, extract_placeholder_names
 
@@ -28,18 +29,24 @@ def build_fewshot_messages() -> list[ChatCompletionMessageParam]:
         text_from = read_file_at_ref(repo.path, f"origin/{case['from']}", case["file"])
         text_to = read_file_at_ref(repo.path, f"origin/{case['to']}", case["file"])
         diff = diff_keys(
-            extract_placeholder_names(text_from),
-            extract_placeholder_names(text_to),
+            extract_placeholder_names(text_from), extract_placeholder_names(text_to)
         )
         classified = classify_diff(diff, rules)
+
+        key_histories = build_key_histories(
+            repo.path,
+            case["file"],
+            classified["flagged"],
+            branches=[case["from"], case["to"]],
+        )
 
         answer = {
             "summary": case["summary"],
             "risk": case["expected_risk"],
             "reasoning": case["reasoning"],
         }
-
-        messages.append({"role": "user", "content": json.dumps(classified)})
+        payload = {"diff": classified, "key_history": key_histories}
+        messages.append({"role": "user", "content": json.dumps(payload)})
         messages.append({"role": "assistant", "content": json.dumps(answer)})
 
     return messages

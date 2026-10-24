@@ -154,9 +154,13 @@ uv run envarity check <repo-name> --file <app>.yaml --from <branch> --to <branch
 ### `explain`
 
 Send a diff to an LLM (via your OpenAI-compatible gateway) and get back a
-JSON summary, a risk rating, and the reasoning behind it — calibrated with
-a few real, hand-judged examples from `config/few_shots/` so the model
-doesn't just guess from the field names alone.
+JSON summary, a risk rating, and the reasoning behind it. For every flagged
+key, it also pulls that key's real change history (how many times it has
+changed before, and under which tickets — the same data `history` shows)
+and gives the model that as context, so the risk rating is grounded in
+precedent instead of guessed from the key names alone. It's calibrated with
+a few real, hand-judged examples from `config/few_shots/` for the same
+reason.
 
 ```bash
 uv run envarity explain <repo-name> --file <app>.yaml --from <branch> --to <branch>
