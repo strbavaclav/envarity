@@ -12,9 +12,9 @@ repos:
         tier: test
       - branch: apc-t5-aks
         tier: test
-      - branch: e3
-        tier: staging
       - branch: ppt
         tier: preprod
+      - branch: e3
+        tier: staging
       - branch: prod
         tier: production
