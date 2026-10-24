@@ -56,6 +56,7 @@ What Envarity tool currently offers:
 - `check` — compare placeholder keys between two environments, classified by rule
 - `explain` — ask an LLM to summarize a diff and rate how risky it is
 - `history` — show when a placeholder's value actually changed, and under which ticket
+- `similar` — semantic search over a file's full change history, in plain language
 - `matrix` — overview of key/flag counts across every app and environment
 - `stale-images` — how many days behind each environment's base images are
 
@@ -106,6 +107,7 @@ The `explain` command additionally needs LLM connection details in a local
 ENVARITY_LLM_BASE_URL=https://your-gateway-url
 ENVARITY_LLM_API_KEY=your-key
 ENVARITY_LLM_MODEL=your-model-name
+ENVARITY_EMBEDDING_MODEL=your-embedding-model-name
 ```
 
 `explain` also pulls few-shot calibration examples from `config/few_shots/`
@@ -169,7 +171,21 @@ Scope it to the branches you care about to cut out unrelated noise.
 
 ```bash
 uv run envarity history <repo-name> <key> --app <app>.yaml
-uv run envarity history <repo-name> <key> --app <app>.yaml --branches ppt,e3
+uv run envarity history <repo-name> <key> --app <app>.yaml --branches ppt,prod
+```
+
+### `similar`
+
+Search a file's entire change history in plain language, without knowing
+the exact placeholder name — useful for "has something like this happened
+before?" questions. Under the hood, both the query and every historical
+change get embedded into vectors, and results are ranked by cosine
+similarity (vector distance) between the query and each one. Scores are
+relative, not absolute; compare results to each other, not against a fixed
+threshold.
+
+```bash
+uv run envarity similar <repo-name> "a description of what you're looking for" --app <app>.yaml --branches ppt,prod
 ```
 
 ### `matrix`

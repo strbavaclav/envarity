@@ -4,8 +4,14 @@ import sys
 
 from envarity.classify import classify_diff
 from envarity.config_loader import load_repos, load_rules, validate_repo
+from envarity.embeddings import embed_texts, find_similar
 from envarity.explain import explain_diff
-from envarity.git_history import extract_ticket_id, log_changes_for_key
+from envarity.git_history import (
+    changes_to_documents,
+    extract_ticket_id,
+    log_all_changes,
+    log_changes_for_key,
+)
 from envarity.git_reader import read_file_at_ref
 from envarity.repo_scan import list_app_yaml_files
 from envarity.report import build_matrix, pick_baseline, render_matrix
@@ -136,6 +142,26 @@ def cmd_history(repo_name: str, key: str, app_file: str, branches: str | None) -
         print(f"    {c['message']}")
 
 
+def cmd_similar(
+    repo_name: str, app_file: str, query: str, branches: str | None
+) -> None:
+    repo = next((r for r in load_repos(REPOS_PATH) if r.name == repo_name), None)
+    if repo is None:
+        raise SystemExit(f"repo '{repo_name}' not found in {REPOS_PATH}")
+
+    branch_list = branches.split(",") if branches else None
+    changes = log_all_changes(repo.path, app_file, branches=branch_list)
+    documents = changes_to_documents(changes)
+
+    if not documents:
+        print("No history found to search.")
+        return
+
+    embeddings = embed_texts(documents)
+    for doc, score in find_similar(query, documents, embeddings):
+        print(f"{score:.3f}  {doc}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="envarity",
@@ -192,6 +218,14 @@ def main() -> None:
         help="Comma-separated branches to scope the search to (default: all).",
     )
 
+    similar_parser = subparsers.add_parser(
+        "similar", help="Semantic search over a file's change history."
+    )
+    similar_parser.add_argument("repo_name")
+    similar_parser.add_argument("query")
+    similar_parser.add_argument("--app", dest="app_file", required=True)
+    similar_parser.add_argument("--branches")
+
     args = parser.parse_args()
 
     try:
@@ -215,6 +249,8 @@ def main() -> None:
             )
         elif args.command == "history":
             cmd_history(args.repo_name, args.key, args.app_file, args.branches)
+        elif args.command == "similar":
+            cmd_similar(args.repo_name, args.app_file, args.query, args.branches)
         else:
             parser.print_help()
     except FileNotFoundError as e:

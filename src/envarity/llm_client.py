@@ -14,3 +14,7 @@ def get_client() -> OpenAI:
 
 def get_model() -> str:
     return os.environ["ENVARITY_LLM_MODEL"]
+
+
+def get_embedding_model() -> str:
+    return os.environ["ENVARITY_EMBEDDING_MODEL"]
