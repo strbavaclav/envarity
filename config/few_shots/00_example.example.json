@@ -1,0 +1,9 @@
+{
+  "repo": "example-service",
+  "file": "app.yaml",
+  "from": "staging",
+  "to": "production",
+  "expected_risk": "low",
+  "summary": "A single resource-limit key differs between environments.",
+  "reasoning": "Looks like an intentional production-only setting rather than a drift bug — a single differing resource value is common and expected per environment."
+}

@@ -96,7 +96,7 @@ def cmd_stale_images(repo_name: str) -> None:
 
 
 def cmd_explain(
-    repo_name: str, file_name: str, branch_from: str, branch_to: str
+    repo_name: str, file_name: str, branch_from: str, branch_to: str, use_fewshot: bool
 ) -> None:
     repo = next((r for r in load_repos(REPOS_PATH) if r.name == repo_name), None)
     if repo is None:
@@ -112,7 +112,7 @@ def cmd_explain(
     )
     classified = classify_diff(diff, rules)
 
-    result = explain_diff(classified)
+    result = explain_diff(classified, use_fewshot=use_fewshot)
     print(json.dumps(result, indent=2))
 
 
@@ -157,6 +157,9 @@ def main() -> None:
     explain_parser.add_argument("--file", required=True)
     explain_parser.add_argument("--from", dest="branch_from", required=True)
     explain_parser.add_argument("--to", dest="branch_to", required=True)
+    explain_parser.add_argument(
+        "--no-fewshot", action="store_true", help="Disable few-shot examples."
+    )
 
     args = parser.parse_args()
 
@@ -172,7 +175,13 @@ def main() -> None:
         elif args.command == "stale-images":
             cmd_stale_images(args.repo_name)
         elif args.command == "explain":
-            cmd_explain(args.repo_name, args.file, args.branch_from, args.branch_to)
+            cmd_explain(
+                args.repo_name,
+                args.file,
+                args.branch_from,
+                args.branch_to,
+                not args.no_fewshot,
+            )
         else:
             parser.print_help()
     except FileNotFoundError as e:

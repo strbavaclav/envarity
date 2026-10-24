@@ -1,5 +1,9 @@
 import json
+import sys
 
+from openai.types.chat import ChatCompletionMessageParam
+
+from envarity.fewshot import build_fewshot_messages
 from envarity.llm_client import get_client, get_model
 
 SYSTEM_PROMPT = """You are an SRE assistant reviewing configuration differences \
@@ -16,14 +20,26 @@ Only flagged keys should drive the risk level. Many flagged keys, or flagged \
 keys that look like auth/URL/connectivity settings, should be rated higher."""
 
 
-def explain_diff(classified: dict) -> dict:
+def explain_diff(classified: dict, use_fewshot: bool = True) -> dict:
     client = get_client()
+    messages: list[ChatCompletionMessageParam] = [
+        {"role": "system", "content": SYSTEM_PROMPT}
+    ]
+
+    if use_fewshot:
+        fewshot_messages = build_fewshot_messages()
+        if not fewshot_messages:
+            print(
+                "Note: no few-shot examples found in config/few_shots/ — running without calibration.",
+                file=sys.stderr,
+            )
+        messages += fewshot_messages
+
+    messages.append({"role": "user", "content": json.dumps(classified)})
+
     response = client.chat.completions.create(
         model=get_model(),
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": json.dumps(classified)},
-        ],
+        messages=messages,
         response_format={"type": "json_object"},
     )
 

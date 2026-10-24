@@ -13,6 +13,10 @@ diagnoses that gap**: it reads your environment branches directly from git,
 compares what should be identical, and tells you *which* differences are
 expected and which ones aren't.
 
+Built hands-on: every design decision here was
+reviewed, and understood by its author, who used AI as a tool during the
+process, not as a replacement for the understaning and evaluating.
+
 ## 📝 Why rules, not just a diff?
 
 A raw diff between two environments is mostly noise:
@@ -103,6 +107,26 @@ ENVARITY_LLM_API_KEY=your-key
 ENVARITY_LLM_MODEL=your-model-name
 ```
 
+`explain` also pulls few-shot calibration examples from `config/few_shots/`
+(gitignored, same pattern as above) — a handful of real diffs you've judged
+by hand, each as its own JSON file:
+
+```json
+{
+  "repo": "example-service",
+  "file": "app.yaml",
+  "from": "staging",
+  "to": "production",
+  "expected_risk": "low",
+  "summary": "...",
+  "reasoning": "..."
+}
+```
+
+`config/few_shots/*.example.json` ships in git as a template; without any
+real cases present, `explain` just falls back to running uncalibrated (and
+tells you so).
+
 ## 💻 Usage
 
 ### `repos list` / `repos validate`
@@ -127,10 +151,13 @@ uv run envarity check <repo-name> --file <app>.yaml --from <branch> --to <branch
 ### `explain`
 
 Send a diff to an LLM (via your OpenAI-compatible gateway) and get back a
-JSON summary, a risk rating, and the reasoning behind it.
+JSON summary, a risk rating, and the reasoning behind it — calibrated with
+a few real, hand-judged examples from `config/few_shots/` so the model
+doesn't just guess from the field names alone.
 
 ```bash
 uv run envarity explain <repo-name> --file <app>.yaml --from <branch> --to <branch>
+uv run envarity explain <repo-name> --file <app>.yaml --from <branch> --to <branch> --no-fewshot
 ```
 
 ### `matrix`

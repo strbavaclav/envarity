@@ -13,6 +13,8 @@ wheels/
 .env
 config/repos.yaml
 config/rules.yaml
+config/few_shots/*.json
+!config/few_shots/*.example.json
 
 # IDE specific files
 .vscode/
