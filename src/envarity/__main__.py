@@ -6,6 +6,7 @@ from envarity.classify import classify_diff
 from envarity.config_loader import load_repos, load_rules, validate_repo
 from envarity.embeddings import embed_texts, find_similar
 from envarity.explain import explain_diff
+from envarity.freshness import check_freshness
 from envarity.git_history import (
     build_key_histories,
     changes_to_documents,
@@ -44,10 +45,16 @@ def cmd_repos_validate() -> None:
         raise SystemExit(1)
 
 
-def cmd_check(repo_name: str, file_name: str, branch_from: str, branch_to: str) -> None:
+def resolve_repo(repo_name: str):
     repo = next((r for r in load_repos(REPOS_PATH) if r.name == repo_name), None)
     if repo is None:
         raise SystemExit(f"repo '{repo_name}' not found in {REPOS_PATH}")
+    check_freshness(repo.path)
+    return repo
+
+
+def cmd_check(repo_name: str, file_name: str, branch_from: str, branch_to: str) -> None:
+    repo = resolve_repo(repo_name)
     rules = load_rules(RULES_PATH)
 
     text_from = read_file_at_ref(repo.path, f"origin/{branch_from}", file_name)
@@ -69,9 +76,7 @@ def cmd_check(repo_name: str, file_name: str, branch_from: str, branch_to: str) 
 
 
 def cmd_matrix(repo_name: str) -> None:
-    repo = next((r for r in load_repos(REPOS_PATH) if r.name == repo_name), None)
-    if repo is None:
-        raise SystemExit(f"repo '{repo_name}' not found in {REPOS_PATH}")
+    repo = resolve_repo(repo_name)
     rules = load_rules(RULES_PATH)
 
     baseline = pick_baseline(repo)
@@ -81,9 +86,7 @@ def cmd_matrix(repo_name: str) -> None:
 
 
 def cmd_stale_images(repo_name: str) -> None:
-    repo = next((r for r in load_repos(REPOS_PATH) if r.name == repo_name), None)
-    if repo is None:
-        raise SystemExit(f"repo '{repo_name}' not found in {REPOS_PATH}")
+    repo = resolve_repo(repo_name)
 
     all_versions = {}
     for env in repo.environments:
@@ -106,9 +109,7 @@ def cmd_stale_images(repo_name: str) -> None:
 def cmd_explain(
     repo_name: str, file_name: str, branch_from: str, branch_to: str, use_fewshot: bool
 ) -> None:
-    repo = next((r for r in load_repos(REPOS_PATH) if r.name == repo_name), None)
-    if repo is None:
-        raise SystemExit(f"repo '{repo_name}' not found in {REPOS_PATH}")
+    repo = resolve_repo(repo_name)
     rules = load_rules(RULES_PATH)
 
     text_from = read_file_at_ref(repo.path, f"origin/{branch_from}", file_name)
@@ -128,9 +129,7 @@ def cmd_explain(
 
 
 def cmd_history(repo_name: str, key: str, app_file: str, branches: str | None) -> None:
-    repo = next((r for r in load_repos(REPOS_PATH) if r.name == repo_name), None)
-    if repo is None:
-        raise SystemExit(f"repo '{repo_name}' not found in {REPOS_PATH}")
+    repo = resolve_repo(repo_name)
 
     branch_list = branches.split(",") if branches else None
     changes = log_changes_for_key(repo.path, app_file, key, branches=branch_list)
@@ -149,9 +148,7 @@ def cmd_history(repo_name: str, key: str, app_file: str, branches: str | None) -
 def cmd_similar(
     repo_name: str, app_file: str, query: str, branches: str | None
 ) -> None:
-    repo = next((r for r in load_repos(REPOS_PATH) if r.name == repo_name), None)
-    if repo is None:
-        raise SystemExit(f"repo '{repo_name}' not found in {REPOS_PATH}")
+    repo = resolve_repo(repo_name)
 
     branch_list = branches.split(",") if branches else None
     changes = log_all_changes(repo.path, app_file, branches=branch_list)

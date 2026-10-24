@@ -60,6 +60,10 @@ What Envarity tool currently offers:
 - `matrix` — overview of key/flag counts across every app and environment
 - `stale-images` — how many days behind each environment's base images are
 
+Commands compare data against your local clone of the repo, not the remote directly. If it
+hasn't been fetched in the last 15 minutes, you'll be warned and asked
+whether to fetch before the command runs.
+
 ## ⚙️ Setup & Configuration
 
 ```bash
