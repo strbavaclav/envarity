@@ -30,6 +30,20 @@ Envarity separates **expected to differ** from **should have matched** using a
 small rule set you define per project, so the output is a short list of things
 that actually need to be look at them.
 
+## 🤖 Why not just ask an agent?
+
+It's tempting to point a coding agent at the repo and ask "what's different
+between prod and ppt?". That works once, but it's slow and expensive to repeat:
+the agent has to read raw YAML across every branch itself, with no guarantee
+it checks everything or returns the same shape twice.
+
+Envarity does the deterministic part — reading branches, diffing keys,
+classifying them against your rules — in plain, fast, free Python. The LLM
+only ever sees the small, already-filtered result, and only for the one job
+language models are actually good at: explaining *why* something is risky.
+Less context, sent once, in a fixed shape, is cheaper, faster, and more
+reliable than asking an agent to rediscover the structure every time.
+
 ## 🧩 Functions Overview
 
 What Envarity tool currently offers:
