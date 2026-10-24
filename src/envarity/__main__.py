@@ -5,6 +5,7 @@ import sys
 from envarity.classify import classify_diff
 from envarity.config_loader import load_repos, load_rules, validate_repo
 from envarity.explain import explain_diff
+from envarity.git_history import extract_ticket_id, log_changes_for_key
 from envarity.git_reader import read_file_at_ref
 from envarity.repo_scan import list_app_yaml_files
 from envarity.report import build_matrix, pick_baseline, render_matrix
@@ -116,6 +117,25 @@ def cmd_explain(
     print(json.dumps(result, indent=2))
 
 
+def cmd_history(repo_name: str, key: str, app_file: str, branches: str | None) -> None:
+    repo = next((r for r in load_repos(REPOS_PATH) if r.name == repo_name), None)
+    if repo is None:
+        raise SystemExit(f"repo '{repo_name}' not found in {REPOS_PATH}")
+
+    branch_list = branches.split(",") if branches else None
+    changes = log_changes_for_key(repo.path, app_file, key, branches=branch_list)
+    if not changes:
+        print(f"No value changes found for '{key}' in {app_file}.")
+        return
+
+    for c in changes:
+        ticket = extract_ticket_id(c["message"])
+        ticket_str = f" [{ticket}]" if ticket else ""
+        print(f"{c['date']}  {c['commit'][:7]}  {c['author']}{ticket_str}")
+        print(f"    {c['before']!r} -> {c['after']!r}")
+        print(f"    {c['message']}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="envarity",
@@ -161,6 +181,17 @@ def main() -> None:
         "--no-fewshot", action="store_true", help="Disable few-shot examples."
     )
 
+    history_parser = subparsers.add_parser(
+        "history", help="Show real value-change history for a placeholder key."
+    )
+    history_parser.add_argument("repo_name")
+    history_parser.add_argument("key")
+    history_parser.add_argument("--app", dest="app_file", required=True)
+    history_parser.add_argument(
+        "--branches",
+        help="Comma-separated branches to scope the search to (default: all).",
+    )
+
     args = parser.parse_args()
 
     try:
@@ -182,6 +213,8 @@ def main() -> None:
                 args.branch_to,
                 not args.no_fewshot,
             )
+        elif args.command == "history":
+            cmd_history(args.repo_name, args.key, args.app_file, args.branches)
         else:
             parser.print_help()
     except FileNotFoundError as e:

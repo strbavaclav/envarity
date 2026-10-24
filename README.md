@@ -55,6 +55,7 @@ What Envarity tool currently offers:
 - `repos` — register a git repo and its environment branches/tiers
 - `check` — compare placeholder keys between two environments, classified by rule
 - `explain` — ask an LLM to summarize a diff and rate how risky it is
+- `history` — show when a placeholder's value actually changed, and under which ticket
 - `matrix` — overview of key/flag counts across every app and environment
 - `stale-images` — how many days behind each environment's base images are
 
@@ -158,6 +159,17 @@ doesn't just guess from the field names alone.
 ```bash
 uv run envarity explain <repo-name> --file <app>.yaml --from <branch> --to <branch>
 uv run envarity explain <repo-name> --file <app>.yaml --from <branch> --to <branch> --no-fewshot
+```
+
+### `history`
+
+Find out when a placeholder's value actually changed (not just when it was
+mentioned in a commit message) and extract the ticket ID behind each change.
+Scope it to the branches you care about to cut out unrelated noise.
+
+```bash
+uv run envarity history <repo-name> <key> --app <app>.yaml
+uv run envarity history <repo-name> <key> --app <app>.yaml --branches ppt,e3
 ```
 
 ### `matrix`
