@@ -1,4 +1,5 @@
 import argparse
+import sys
 
 from envarity.classify import classify_diff
 from envarity.config_loader import load_repos, load_rules, validate_repo
@@ -128,18 +129,27 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    if args.command == "repos" and args.repos_command == "list":
-        cmd_repos_list()
-    elif args.command == "repos" and args.repos_command == "validate":
-        cmd_repos_validate()
-    elif args.command == "check":
-        cmd_check(args.repo_name, args.file, args.branch_from, args.branch_to)
-    elif args.command == "matrix":
-        cmd_matrix(args.repo_name)
-    elif args.command == "stale-images":
-        cmd_stale_images(args.repo_name)
-    else:
-        parser.print_help()
+    try:
+        if args.command == "repos" and args.repos_command == "list":
+            cmd_repos_list()
+        elif args.command == "repos" and args.repos_command == "validate":
+            cmd_repos_validate()
+        elif args.command == "check":
+            cmd_check(args.repo_name, args.file, args.branch_from, args.branch_to)
+        elif args.command == "matrix":
+            cmd_matrix(args.repo_name)
+        elif args.command == "stale-images":
+            cmd_stale_images(args.repo_name)
+        else:
+            parser.print_help()
+    except FileNotFoundError as e:
+        if e.filename in (REPOS_PATH, RULES_PATH):
+            example = e.filename.replace(".yaml", ".example.yaml")
+            print(f"Error: {e.filename} not found.", file=sys.stderr)
+            print(f"  Run: cp {example} {e.filename}", file=sys.stderr)
+        else:
+            print(f"Error: {e}", file=sys.stderr)
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
