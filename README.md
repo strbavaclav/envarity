@@ -36,6 +36,7 @@ What Envarity tool currently offers:
 
 - `repos` — register a git repo and its environment branches/tiers
 - `check` — compare placeholder keys between two environments, classified by rule
+- `explain` — ask an LLM to summarize a diff and rate how risky it is
 - `matrix` — overview of key/flag counts across every app and environment
 - `stale-images` — how many days behind each environment's base images are
 
@@ -79,6 +80,15 @@ rules:
     expect: differs
 ```
 
+The `explain` command additionally needs LLM connection details in a local
+`.env` (also gitignored):
+
+```bash
+ENVARITY_LLM_BASE_URL=https://your-gateway-url
+ENVARITY_LLM_API_KEY=your-key
+ENVARITY_LLM_MODEL=your-model-name
+```
+
 ## 💻 Usage
 
 ### `repos list` / `repos validate`
@@ -98,6 +108,15 @@ by your rules into "expected" and "flagged" differences.
 
 ```bash
 uv run envarity check <repo-name> --file <app>.yaml --from <branch> --to <branch>
+```
+
+### `explain`
+
+Send a diff to an LLM (via your OpenAI-compatible gateway) and get back a
+JSON summary, a risk rating, and the reasoning behind it.
+
+```bash
+uv run envarity explain <repo-name> --file <app>.yaml --from <branch> --to <branch>
 ```
 
 ### `matrix`

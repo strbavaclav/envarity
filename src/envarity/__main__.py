@@ -1,8 +1,10 @@
 import argparse
+import json
 import sys
 
 from envarity.classify import classify_diff
 from envarity.config_loader import load_repos, load_rules, validate_repo
+from envarity.explain import explain_diff
 from envarity.git_reader import read_file_at_ref
 from envarity.repo_scan import list_app_yaml_files
 from envarity.report import build_matrix, pick_baseline, render_matrix
@@ -93,6 +95,27 @@ def cmd_stale_images(repo_name: str) -> None:
                 print(f"  {image}: {days} days behind")
 
 
+def cmd_explain(
+    repo_name: str, file_name: str, branch_from: str, branch_to: str
+) -> None:
+    repo = next((r for r in load_repos(REPOS_PATH) if r.name == repo_name), None)
+    if repo is None:
+        raise SystemExit(f"repo '{repo_name}' not found in {REPOS_PATH}")
+    rules = load_rules(RULES_PATH)
+
+    text_from = read_file_at_ref(repo.path, f"origin/{branch_from}", file_name)
+    text_to = read_file_at_ref(repo.path, f"origin/{branch_to}", file_name)
+
+    diff = diff_keys(
+        extract_placeholder_names(text_from),
+        extract_placeholder_names(text_to),
+    )
+    classified = classify_diff(diff, rules)
+
+    result = explain_diff(classified)
+    print(json.dumps(result, indent=2))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="envarity",
@@ -127,6 +150,14 @@ def main() -> None:
     )
     stale_parser.add_argument("repo_name")
 
+    explain_parser = subparsers.add_parser(
+        "explain", help="Use an LLM to explain and risk-rate a diff."
+    )
+    explain_parser.add_argument("repo_name")
+    explain_parser.add_argument("--file", required=True)
+    explain_parser.add_argument("--from", dest="branch_from", required=True)
+    explain_parser.add_argument("--to", dest="branch_to", required=True)
+
     args = parser.parse_args()
 
     try:
@@ -140,6 +171,8 @@ def main() -> None:
             cmd_matrix(args.repo_name)
         elif args.command == "stale-images":
             cmd_stale_images(args.repo_name)
+        elif args.command == "explain":
+            cmd_explain(args.repo_name, args.file, args.branch_from, args.branch_to)
         else:
             parser.print_help()
     except FileNotFoundError as e:
