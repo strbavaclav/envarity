@@ -10,6 +10,6 @@ def read_file_at_ref(repo_path: str, ref: str, file_path: str) -> str:
     )
     if result.returncode != 0:
         raise FileNotFoundError(
-            f"{file_path} nenalezen na {ref}: {result.stderr.strip()}"
+            f"{file_path} not found at {ref}: {result.stderr.strip()}"
         )
     return result.stdout

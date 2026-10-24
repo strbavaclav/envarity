@@ -5,6 +5,7 @@ from envarity.config_loader import load_repos, load_rules, validate_repo
 from envarity.git_reader import read_file_at_ref
 from envarity.repo_scan import list_app_yaml_files
 from envarity.report import build_matrix, pick_baseline, render_matrix
+from envarity.staleness import days_behind, parse_image_dates
 from envarity.yaml_diff import diff_keys, extract_placeholder_names
 
 REPOS_PATH = "config/repos.yaml"
@@ -27,7 +28,7 @@ def cmd_repos_validate() -> None:
             for err in errors:
                 print(f"[{repo.name}] ERROR: {err}")
         else:
-            print(f"[{repo.name}] OK — všechny branche existují")
+            print(f"[{repo.name}] OK — All branches exist and are reachable.")
     if any_errors:
         raise SystemExit(1)
 
@@ -68,6 +69,29 @@ def cmd_matrix(repo_name: str) -> None:
     print(render_matrix(matrix, repo.environments))
 
 
+def cmd_stale_images(repo_name: str) -> None:
+    repo = next((r for r in load_repos(REPOS_PATH) if r.name == repo_name), None)
+    if repo is None:
+        raise SystemExit(f"repo '{repo_name}' not found in {REPOS_PATH}")
+
+    all_versions = {}
+    for env in repo.environments:
+        text = read_file_at_ref(repo.path, f"origin/{env.branch}", "base-images.yaml")
+        all_versions[env.branch] = parse_image_dates(text)
+
+    result = days_behind(all_versions)
+
+    for branch, images in result.items():
+        print(f"{branch}:")
+        for image, days in images.items():
+            if days is None:
+                print(f"  {image}: missing")
+            elif days == 0:
+                print(f"  {image}: up to date")
+            else:
+                print(f"  {image}: {days} days behind")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="envarity",
@@ -76,11 +100,11 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command")
 
     repos_parser = subparsers.add_parser(
-        "repos", help="Práce s registrovanými repozitáři."
+        "repos", help="Work with registered repositories."
     )
     repos_sub = repos_parser.add_subparsers(dest="repos_command")
-    repos_sub.add_parser("list", help="Vypíše registrované repozitáře.")
-    repos_sub.add_parser("validate", help="Ověří, že branche v repu existují.")
+    repos_sub.add_parser("list", help="List registered repositories.")
+    repos_sub.add_parser("validate", help="Verify that branches in the repo exist.")
 
     check_parser = subparsers.add_parser(
         "check",
@@ -97,6 +121,11 @@ def main() -> None:
     )
     matrix_parser.add_argument("repo_name")
 
+    stale_parser = subparsers.add_parser(
+        "stale-images", help="Show base image staleness across environments."
+    )
+    stale_parser.add_argument("repo_name")
+
     args = parser.parse_args()
 
     if args.command == "repos" and args.repos_command == "list":
@@ -107,6 +136,8 @@ def main() -> None:
         cmd_check(args.repo_name, args.file, args.branch_from, args.branch_to)
     elif args.command == "matrix":
         cmd_matrix(args.repo_name)
+    elif args.command == "stale-images":
+        cmd_stale_images(args.repo_name)
     else:
         parser.print_help()
 
