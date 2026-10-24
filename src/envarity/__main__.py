@@ -3,6 +3,8 @@ import argparse
 from envarity.classify import classify_diff
 from envarity.config_loader import load_repos, load_rules, validate_repo
 from envarity.git_reader import read_file_at_ref
+from envarity.repo_scan import list_app_yaml_files
+from envarity.report import build_matrix, pick_baseline, render_matrix
 from envarity.yaml_diff import diff_keys, extract_placeholder_names
 
 REPOS_PATH = "config/repos.yaml"
@@ -54,6 +56,18 @@ def cmd_check(repo_name: str, file_name: str, branch_from: str, branch_to: str) 
         print(f"  - {key}")
 
 
+def cmd_matrix(repo_name: str) -> None:
+    repo = next((r for r in load_repos(REPOS_PATH) if r.name == repo_name), None)
+    if repo is None:
+        raise SystemExit(f"repo '{repo_name}' not found in {REPOS_PATH}")
+    rules = load_rules(RULES_PATH)
+
+    baseline = pick_baseline(repo)
+    files = list_app_yaml_files(repo.path, f"origin/{baseline.branch}")
+    matrix = build_matrix(repo, files, rules)
+    print(render_matrix(matrix, repo.environments))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="envarity",
@@ -78,6 +92,11 @@ def main() -> None:
     check_parser.add_argument("--from", dest="branch_from", required=True)
     check_parser.add_argument("--to", dest="branch_to", required=True)
 
+    matrix_parser = subparsers.add_parser(
+        "matrix", help="Matrix report across all apps and environments."
+    )
+    matrix_parser.add_argument("repo_name")
+
     args = parser.parse_args()
 
     if args.command == "repos" and args.repos_command == "list":
@@ -86,6 +105,8 @@ def main() -> None:
         cmd_repos_validate()
     elif args.command == "check":
         cmd_check(args.repo_name, args.file, args.branch_from, args.branch_to)
+    elif args.command == "matrix":
+        cmd_matrix(args.repo_name)
     else:
         parser.print_help()
 
