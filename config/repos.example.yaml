@@ -1,0 +1,12 @@
+repos:
+  - name: example-service
+    path: /path/to/your/local/clone/of/the/environments/repo
+    environments:
+      - branch: test-1
+        tier: test
+      - branch: preprod
+        tier: preprod
+      - branch: staging
+        tier: staging
+      - branch: prod
+        tier: production
