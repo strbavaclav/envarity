@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-25
+
+### Added
+- MCP server (`envarity-mcp`) exposing `get_diff`, `get_key_history`, and
+  `search_similar` to any MCP-compatible client, not just our own `report` agent. Unlike `report`, the
+  server doesn't call an LLM itself — it's a tool provider for whichever
+  agent connects to it.
+- `mcp[cli]` dependency, so the server can be tested standalone with the
+  MCP Inspector (`uv run mcp dev src/envarity/mcp_server.py`) without
+  needing a client.
+
 ## [0.4.0] - 2026-10-25
 
 ### Added

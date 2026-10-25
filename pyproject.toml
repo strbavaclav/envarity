@@ -1,13 +1,12 @@
 [project]
 name = "envarity"
-version = "0.4.0"
+version = "0.5.0"
 description = "Add your description here"
 readme = "README.md"
-authors = [
-    { name = "Štrba Václav", email = "vaclav.strba@o2.cz" }
-]
+authors = [{ name = "Ing. Štrba Václav", email = "strba.vaclav@gmail.cz" }]
 requires-python = ">=3.11"
 dependencies = [
+    "mcp[cli]>=2.3.0",
     "openai>=3.37.0",
     "pyaml>=26.7.0",
     "pydantic>=2.14.1",
@@ -16,6 +15,7 @@ dependencies = [
 
 [project.scripts]
 envarity = "envarity:main"
+envarity-mcp = "envarity.mcp_server:main"
 
 [build-system]
 requires = ["uv_build>=0.13.5,<0.14.0"]

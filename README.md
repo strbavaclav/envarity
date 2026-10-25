@@ -60,6 +60,7 @@ What Envarity tool currently offers:
 - `matrix` — overview of key/flag counts across every app and environment
 - `stale-images` — how many days behind each environment's base images are
 - `report` — an agent that investigates a diff on its own (calling `check`/`history`/`similar` as it sees fit) and writes up a markdown report
+- an MCP server exposing the core tools to any MCP-compatible clients
 
 Commands compare data against your local clone of the repo, not the remote directly. If it
 hasn't been fetched in the last 15 minutes, you'll be warned and asked
@@ -227,3 +228,41 @@ investigates, it never changes anything.
 ```bash
 uv run envarity report <repo-name> --file <app>.yaml --from <branch> --to <branch>
 ```
+
+## 🔌 MCP Server
+
+`get_diff`, `get_key_history`, and `search_similar` are also exposed as an
+[MCP](https://modelcontextprotocol.io/) server, so any MCP-compatible client can call them directly — not
+just our own `report` agent. Unlike `report`, the MCP server doesn't call an
+LLM itself; it's a tool provider for whichever agent connects to it.
+
+Run it directly:
+
+```bash
+uv run envarity-mcp
+```
+
+Or test it standalone with the MCP Inspector, without needing any client:
+
+```bash
+uv run mcp dev src/envarity/mcp_server.py
+```
+
+To connect it to a client, point it at this command (adjust the project
+path for your machine):
+
+```json
+{
+  "mcp": {
+    "envarity": {
+      "type": "local",
+      "command": ["uv", "run", "--project", "/path/to/envarity", "envarity-mcp"]
+    }
+  }
+}
+```
+
+Exact config location and schema vary by client — check its MCP docs. The server resolves
+`config/repos.yaml`/`config/rules.yaml` relative to its own file location,
+not the caller's working directory, so it works no matter where the client
+launches it from.
