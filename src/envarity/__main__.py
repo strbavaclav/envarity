@@ -2,6 +2,7 @@ import argparse
 import json
 import sys
 
+from envarity.agent import run_report_agent
 from envarity.classify import classify_diff
 from envarity.config_loader import load_repos, load_rules, validate_repo
 from envarity.embeddings import embed_texts, find_similar
@@ -163,6 +164,15 @@ def cmd_similar(
         print(f"{score:.3f}  {doc}")
 
 
+def cmd_report(
+    repo_name: str, file_name: str, branch_from: str, branch_to: str
+) -> None:
+    repo = resolve_repo(repo_name)
+    rules = load_rules(RULES_PATH)
+    report = run_report_agent(repo, file_name, branch_from, branch_to, rules)
+    print(report)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="envarity",
@@ -227,6 +237,14 @@ def main() -> None:
     similar_parser.add_argument("--app", dest="app_file", required=True)
     similar_parser.add_argument("--branches")
 
+    report_parser = subparsers.add_parser(
+        "report", help="Run an agent to investigate a diff and write a report."
+    )
+    report_parser.add_argument("repo_name")
+    report_parser.add_argument("--file", required=True)
+    report_parser.add_argument("--from", dest="branch_from", required=True)
+    report_parser.add_argument("--to", dest="branch_to", required=True)
+
     args = parser.parse_args()
 
     try:
@@ -252,6 +270,8 @@ def main() -> None:
             cmd_history(args.repo_name, args.key, args.app_file, args.branches)
         elif args.command == "similar":
             cmd_similar(args.repo_name, args.app_file, args.query, args.branches)
+        elif args.command == "report":
+            cmd_report(args.repo_name, args.file, args.branch_from, args.branch_to)
         else:
             parser.print_help()
     except FileNotFoundError as e:
